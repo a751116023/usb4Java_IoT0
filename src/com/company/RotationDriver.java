@@ -1,12 +1,14 @@
 package com.company;
 
+import javax.security.auth.login.Configuration;
 import javax.usb.*;
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.List;
 
-public class Main {
+public class RotationDriver {
 
-    public static void main(String[] args) {
+    public static void getRotationData() {
 	// write your code here
         try {
             //init virtual usb hub
@@ -31,7 +33,8 @@ public class Main {
             System.out.println(Arrays.toString(irp.getData()));
             // Use interface to communicate with devices
             UsbConfiguration configuration = device.getActiveUsbConfiguration();
-            UsbInterface iface = configuration.getUsbInterface((byte) 0);
+            UsbInterface iface = configuration.getUsbInterface((byte) 02);
+            System.out.println(iface);
             iface.claim(new UsbInterfacePolicy()
             {
                 @Override
@@ -42,18 +45,23 @@ public class Main {
             });
             try
             {
+                boolean exit = false;
                 UsbEndpoint endpoint = iface.getUsbEndpoint((byte) 0x84);
                 UsbPipe pipe = endpoint.getUsbPipe();
-                pipe.open();
-                try
-                {
-                    byte[] data = new byte[8];
-                    int received = pipe.syncSubmit(data);
-                    System.out.println(received + " bytes received");
-                }
-                finally
-                {
-                    pipe.close();
+                while(!exit) {
+                    try {
+                        Thread.sleep(1);
+                        pipe.open();
+                        byte[] data = new byte[16];
+                        pipe.syncSubmit(data);
+
+                    }catch (Exception e){
+                        e.printStackTrace();
+                        exit = true;
+                    }
+                    finally {
+                        pipe.close();
+                    }
                 }
             }
             finally
@@ -67,7 +75,6 @@ public class Main {
 }
 
 class usbDriver{
-
     public UsbDevice findDevice(UsbHub hub, short vendorId, short productId)
     {
         for (UsbDevice device : (List<UsbDevice>) hub.getAttachedUsbDevices())
